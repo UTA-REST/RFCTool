@@ -8,24 +8,41 @@ kB  = 1.380649e-23
 N0  = 2.69e25
 
 
+class RFCSettings:
+    def __init__(self, p=0.25*1e-3,N=2,Epush=1000,q=1,m=133,T=293,Vpp=400,Omega=8e6 *2*pi,mu=0.0018,yloss=-1 ):
+        self.p     = p             # Carpet pitch (electrode center to electrode center) in m
+        self.N     = N             # N phases
+        self.Epush = Epush         # Push field strength in V/m
+        self.q     = q             # ion charge in e
+        self.m     = m             # ion mass in amu
+        self.T     = T             # Buffer gas temperature in K
+        self.Vpp   = Vpp           # Peak-to-peak voltage in V
+        self.Omega = Omega         # RF Frequency in rad s^-1
+        self.mu    = mu            # Mobility in m^2 / Vs
+        self.yloss = yloss         # Loss surface (-1 automtically fixes to paper default, 0.25 pitches)
+
+
 class RFC:
 
-    def __init__(self,p=0.25*1e-3,N=2,Epush=10*1e2,q=1,m=133,T=293,Vpp=400,Omega=8*2*3.1428*2*1e6,mu=0.0018,yloss=-1):
-        self.p     = p                            # Carpet pitch
-        self.N     = N                            # N phases
-        self.Epush = Epush                        # Push field (V/m)
-        self.q     = q*e                          # Ion charge
-        self.T     = T                            # Temperature (K)
-        self.Vpp   = Vpp                          # Peak-to-peak volage (V)
-        self.mu    = mu                           # Mobility (SI)
-        self.m     = m *amu                       # Ion mass (amu)
-        self.Omega = Omega                        # Frequency (rad^-1)
+    def __init__(self,S=RFCSettings()):
+        self.Update(S)
+
+    def Update(self,S):
+        self.p     = S.p                            # Carpet pitch
+        self.N     = S.N                            # N phases
+        self.Epush = S.Epush                        # Push field (V/m)
+        self.q     = S.q*e                          # Ion charge
+        self.T     = S.T                            # Temperature (K)
+        self.Vpp   = S.Vpp                          # Peak-to-peak volage (V)
+        self.mu    = S.mu                           # Mobility (SI)
+        self.m     = S.m *amu                       # Ion mass (amu)
+        self.Omega = S.Omega                        # Frequency (rad^-1)
         self.D     = self.q/(self.mu*self.m)
-        self.eta   = np.arctan(-self.D/Omega)
-        if(yloss<0):
+        self.eta   = np.arctan(-self.D/S.Omega)
+        if(S.yloss<0):
             self.yloss = 0.25*self.p
         else:
-            self.yloss=yloss
+            self.yloss=S.yloss
 
     def CalcV(self,y):
         vx=self.q**2/(self.m*(self.D**2+self.Omega**2))*0.5*(2*pi/(self.N*self.p))**2*(self.Vpp/2)**2*np.exp(-4*pi*y/(self.N*self.p)) +self.q*self.Epush*y
