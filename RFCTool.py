@@ -40,9 +40,17 @@ class RFC:
         self.D     = self.q/(self.mu*self.m)
         self.eta   = np.arctan(-self.D/S.Omega)
         if(S.yloss<0):
-            self.yloss = 0.25*self.p
+            self.yloss = 0.25*self.p+1e-5
         else:
             self.yloss=S.yloss
+
+        #Some internal calculations of the prob distribution
+        self.spacing=0.001
+        self.ys=np.arange(self.yloss,20*self.p,self.spacing*self.p)
+        self.EffPots=self.CalcV(self.ys)
+        self.Distn=np.exp(-(self.EffPots-min(self.EffPots))/(kB*self.T))
+        self.PartitionFn=sum(self.Distn)*self.spacing*self.p
+
 
     def CalcV(self,y):
         vx=self.q**2/(self.m*(self.D**2+self.Omega**2))*0.5*(2*pi/(self.N*self.p))**2*(self.Vpp/2)**2*np.exp(-4*pi*y/(self.N*self.p)) +self.q*self.Epush*y
@@ -60,24 +68,15 @@ class RFC:
         return 0.5*self.mu*self.Epush*self.D/self.Omega
 
     def DistributionFunction(self,y,norm=0):
-        spacing=0.001
-        ys=np.arange(self.yloss,20*self.p,spacing*self.p)
-        EffPots=self.CalcV(ys)
-        Distn=np.exp(-(EffPots-min(EffPots))/(kB*self.T))
-        PartitionFn=sum(Distn)*spacing*self.p
         if(norm==0):
-            NormFactor=1./PartitionFn
+            NormFactor=1./self.PartitionFn
         elif(norm==1):
             NormFactor=1./max(Distn)
-        return np.exp(-(self.CalcV(y)-min(EffPots))/(kB*self.T)) *NormFactor
+        return np.exp(-(self.CalcV(y)-min(self.EffPots))/(kB*self.T)) *NormFactor
 
 
     def IntegralDistLoss(self):
-        spacing=0.001
-        ys=np.arange(-20*self.p,20*self.p,spacing*self.p)
-        EffPots=self.CalcV(ys)
-        Distn=np.exp(-(EffPots-min(EffPots))/(kB*self.T))
-        return(1.-sum(Distn*(ys>self.yloss))/sum(Distn))
+        return(1.-sum(self.Distn*(self.ys>self.yloss))/sum(self.Distn))
 
     def VMin(self):
         return np.sqrt(self.m*(self.D**2+self.Omega**2)*self.Epush/(2*self.q)*(self.N*self.p/pi)**3)
